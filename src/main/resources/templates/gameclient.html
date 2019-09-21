@@ -1,0 +1,95 @@
+<!DOCTYPE HTML>
+<html lang = "en">
+<head>
+
+    <!-- this is code to logout -->
+    <button onclick="myFunction()">logout</button>
+
+    <script>
+        function myFunction() {
+            location.replace("http://localhost:8080/logout")
+        }
+    </script>
+    <!-- this is code to logout -->
+
+
+
+    <meta charset = "UTF-8" />
+    <style type = "text/css">
+        .hidden{
+            display: none;
+        }
+    </style>
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/webjars/jquery/jquery.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script src="/game/index.js"></script>
+    <script src="/game/pixi.min.js"></script>
+
+
+</head>
+
+
+<body onload = "init()">
+
+<h1 th:text="${username}"/>
+<img class = "hidden"
+     id = "PlayerSprite"
+     src = "playerSp.png"
+     alt = "player" />
+
+<img class = "hidden"
+     id = "grass"
+     src = "grass.png"
+     alt = "grass" />
+
+<img class = "hidden"
+     id = "grassDead"
+     src = "grass_dead.png"
+     alt = "dead grass" />
+
+<img class = "hidden"
+     id = "water"
+     src = "water1.png"
+     alt = "water"/>
+
+<img class = "hidden"
+     id = "door"
+     src = "door.png"
+     alt = "door"/>
+
+<img class = "hidden"
+     id = "GuideSprite"
+     src = "guide.png"
+     alt = "guide" />
+
+
+<img class = "hidden"
+     id = "OtherPlayerSprite"
+     src = "OtherPlayer.png"
+     alt = "other player" />
+
+<img class = "hidden"
+     id = "noTexture"
+     src = "missingTexture.png"
+     alt = "missing No."/>
+
+<canvas
+        id="cropTest"
+        width="300"
+        height="300">
+</canvas>
+
+
+
+
+<h1>Press a Key to update Coordinates</h1>
+<p id = "coordinates"></p>
+<p id = "actualXY"></p>
+<p id = "serverXY">Server Coordinates: </p>
+<p id = "keyPressed">Last Key Pressed: </p>
+<p id = "tileLocation"></p>
+
+</body>
+</html>
