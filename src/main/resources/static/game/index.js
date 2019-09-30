@@ -19,7 +19,6 @@ let container;
 let boardInfoURL = '/board';
 
 function init(){ // called on startup
-
     //getting images TODO: search for pixi texture loading
     sprites = [];
     sprites["water"] = document.getElementById("water");
@@ -28,8 +27,7 @@ function init(){ // called on startup
     sprites["door"] = document.getElementById("door");
     sprites["npc"] = document.getElementById("GuideSprite");
     sprites["OtherPlayerSprite"] = document.getElementById("OtherPlayerSprite");
-    sprites["player-avatar"] = document.getElementById("PlayerSprite");
-
+    sprites["player"] = document.getElementById("PlayerSprite");
     document.onkeydown = updateKeys;//gets key presses
 
     charAlias = [];
@@ -47,13 +45,10 @@ function init(){ // called on startup
     });
 
     document.body.appendChild(app.view);
-
     container = new PIXI.Container();
     app.stage.addChild(container);
-
     // retrieve username
     username= $($.find('h1')[0]).html();
-
 
     // connect to STOMP
     var socket = new SockJS('/WebSocketConfig');//connection link
@@ -66,7 +61,7 @@ function init(){ // called on startup
         });
 
         // determine player avatar and draw board
-        $.getJSON("../player-avatar/"+username,function (entity) {
+        $.getJSON("/player-avatar/"+username,function (entity) {
             myUserEnityId= entity.id;
             loadBoard(entity.board);
         });
@@ -200,10 +195,11 @@ function sendCommand(command, parameter) {
 }
 
 function eventReaction(event) {
+
     switch (event.type) {
-        case "EntityCreatedEvent":
-        case "EntityMovedEvent":
-            $.getJSON("../entity/"+event.properties.entity,function (entity) {
+        case "entity-created":
+        case "entity-moved":
+            $.getJSON("/entity/"+event.properties.entity,function (entity) {
 
                 // check to see if it is the current player's avatar
                 if (entity.properties.player!=undefined){
@@ -214,7 +210,6 @@ function eventReaction(event) {
                         }
                     }
                 }
-
                 if(entity.board == currentBoardName) { // draw the entity if it's on our board
                     drawEntity(entity);
                 }
@@ -222,12 +217,13 @@ function eventReaction(event) {
 
             break;
 
-        case "SpeechEvent":
+        case "speech":
             window.alert(event.properties.message);
             break;
 
-        case "CommandEvent":
+        case "command":
             //ignore
             break;
+        default:
     }
 }
