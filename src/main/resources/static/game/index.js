@@ -32,6 +32,10 @@ function init(){ // called on startup
 
     charAlias = [];
     charAlias["-"] = "grass";
+    charAlias[" "] = "grass";
+    charAlias["X"] = "grass";
+    charAlias["⚐"] = "grass";
+    charAlias["B"] = "grass";
     charAlias["#"] = "grassDead";
     charAlias["@"] = "door";
     charAlias["*"] = "door";
@@ -126,6 +130,8 @@ function loadBoard(boardName){
         boardHeight = board.height;
         boardMap = board.tilemap;
 
+        console.log(boardMap);
+        console.log(currentBoardName);
         // create board tiles
         let pos = 0;
         for(let iy = 0; iy < boardHeight; iy++){
@@ -200,7 +206,8 @@ function eventReaction(event) {
         case "entity-created":
         case "entity-moved":
             $.getJSON("/entity/"+event.properties.entity,function (entity) {
-
+                console.log('AKSJFHASKJHGASKJGHASKJGH');
+                console.log(entity);
                 // check to see if it is the current player's avatar
                 if (entity.properties.player!=undefined){
                     enityUserName=entity.properties.player;
