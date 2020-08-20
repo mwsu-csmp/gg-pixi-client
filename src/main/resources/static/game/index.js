@@ -1,27 +1,32 @@
 let grass, door, boxSpawn,goalBarrier,guideSpawn,water;
 let guideStand,chest,playerStand; let grassDead;
 let sprites;    let lastMovement="";    let username;
-let myUserEnityId; let i,g=0,gd=0;
-let currentBoardName,boardWidth, boardHeight;
+let myUserEnityId; let i,g=0,gd=0, ba=0;
+let currentBoardName,boardWidth, boardHeight, boardArray;
 let charAlias = new Map();
+let camX,camY,camH,camW;
 let boardMap;   let entitySprites;
 let animatedPlayerUp, animatedPlayerDown, animatedPlayerLeft, animatedPlayerRight;
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
 let boardInfoURL = '/board';
 
-let app = new PIXI.Application({ //make transparent later to look better ---level 0
-    width: WINDOW_SIZE, height: WINDOW_SIZE, transparent:true
+let app = new PIXI.Application({
+    width: WINDOW_SIZE, height: WINDOW_SIZE, transparent:true,
 });
 document.body.appendChild(app.view);
 let container = new PIXI.Container;
-app.stage.addChild(container);
+let boardContainer=new PIXI.Container;
+let camera=new PIXI.Graphics();
 PIXI.loader.add("/game/landscape-sheet.json")
     .add("/game/guide-sheet.json")
     .add("/game/box-sheet.json")
     .add("/game/player-sheet.json")
     .load(setupSprites);
-//5 = highest priority & 0 = lowest priority & !=done
+app.stage.addChild(boardContainer);
+app.stage.addChild(container);
+container.addChild(camera);
+
 
 function setupSprites() {
     let landscape = PIXI.loader.resources["/game/landscape-sheet.json"].spritesheet;
@@ -31,11 +36,9 @@ function setupSprites() {
     guideSpawn = new PIXI.Sprite(landscape.textures["guide-spawn.png"]);
     water = new PIXI.Sprite(landscape.textures["water.png"]);
 
-    //make standstill sprite for guide! possible walk animation?? is it needed?----- level 1
     let guide = PIXI.loader.resources["/game/guide-sheet.json"].spritesheet;
     guideStand = new PIXI.Sprite(guide.textures["guide_down_stand.png"]);
 
-    //make sprite for chest(closed)!, animation open and stay open!, make animation only happen when hit ---level 2
     let box = PIXI.loader.resources["/game/box-sheet.json"].spritesheet;
     chest = new PIXI.Sprite(box.textures["box_1.png"]);
     /**
@@ -47,10 +50,8 @@ function setupSprites() {
      *     animatedChest.loop=false;
      *     app.stage.addChild(animatedChest);
      */
-        //make standstill player sprite!, make walk animations!, tie the animations to the key inputs --- level 3
     let player = PIXI.loader.resources["/game/player-sheet.json"].spritesheet;
     playerStand = new PIXI.Sprite(player.textures["main_down_stand.png"]);
-    //need to tie each walk animation for each direction input
     /**
      let animatedPlayerLeft= new PIXI.AnimatedSprite(player.animations["main_left_walk"]);
      animatedPlayerLeft.animationSpeed = 0.167;
@@ -75,7 +76,6 @@ function setupSprites() {
         grass[i]=new PIXI.Sprite(landscape.textures["grass.png"]);
         grass[i].height=TILE_SIZE;
         grass[i].width=TILE_SIZE;
-        container.addChild(grass[i]);
     }
 
     grassDead=[];
@@ -83,8 +83,8 @@ function setupSprites() {
         grassDead[i]=new PIXI.Sprite(landscape.textures["grass_dead.png"]);
         grassDead[i].height=TILE_SIZE;
         grassDead[i].width=TILE_SIZE;
-        container.addChild(grassDead[i]);
     }
+    boardArray=[];
 
     charAlias = [];
     charAlias[" "] = "grass";
@@ -109,8 +109,7 @@ function setupSprites() {
         });
     });
 }
-// updates currentKey with the latest key pressed.
-function updateKeys(e){
+function updateKeys(e){ // updates currentKey with the latest key pressed.
     let currentKey = e.key;
     switch (currentKey){
         case "a":
@@ -150,7 +149,7 @@ function updateKeys(e){
 } // end updateKeys
 function loadBoard(boardName){
     $.getJSON(boardInfoURL+'/'+boardName, function(board){
-        container.removeChildren();// first clear the board
+        boardContainer.removeChildren();// first clear the board
         // load board details
         currentBoardName = boardName;
         boardWidth = board.width+1;
@@ -170,22 +169,25 @@ function loadBoard(boardName){
                         tile= grass[g];
                         tile.x = ix * TILE_SIZE;
                         tile.y = iy * TILE_SIZE;
-                        container.addChild(tile);
-                        pos++; g++;break;
+                        boardContainer.addChild(tile);
+                        boardArray[ba]=tile;
+                        pos++; g++; ba++;break;
                     case "#":
                         tile= grassDead[gd];
                         tile.x = ix * TILE_SIZE;
                         tile.y = iy * TILE_SIZE;
-                        container.addChild(tile);
-                        pos++; gd++;break;
+                        boardContainer.addChild(tile);
+                        boardArray[ba]=tile;
+                        pos++; gd++; ba++; break;
                     default:
                         tileImage = sprites[charAlias[boardMap.charAt(pos)]];
                         tileImage.height = TILE_SIZE;
                         tileImage.width = TILE_SIZE;
                         tileImage.x = ix * TILE_SIZE;
                         tileImage.y = iy * TILE_SIZE;
-                        container.addChild(tileImage);
-                        pos++;
+                        boardContainer.addChild(tileImage);
+                        boardArray[ba]=tile;
+                        pos++; ba++;
                 }
             }
         }// add entities on the tile (if any)
@@ -216,11 +218,25 @@ function drawEntity(entity){
         container.addChild(entityImage);
         entitySprites[entity.id] = entityImage;
     }
+    //camera.beginFill(0x66CCFF);
+    camera.drawRect(0, 0, 480, 480);
+    camera.position.set(playerStand.x-240,playerStand.y-240);
+    camera.endFill();
+    camX=camera.getBounds().x;
+    camY=camera.getBounds().y;
+    camW=camera.getBounds().width;
+    camH=camera.getBounds().height;
+    console.log("x:",camX,"y:", camY,"width:",camW,"height:",camH);
+    for(i=0;i<boardArray.length-1;i++){
+        if (boardArray[i].x>camX&&boardArray[i].x<(camX+camW)&&boardArray[i].y > camY && boardArray[i].y < (camY + camH)) {
+                boardArray[i].visible = true;
+        }
+        else{boardArray[i].visible=false;}
+    }
 }
 // ***** The following methods display 'debugging'    *****
 // ***** information that's retrieved from the server *****
-//sends a command
-function sendCommand(command, parameter) {
+function sendCommand(command, parameter) {      //sends a command
     stompClient.send("/index/gg/command", {}, JSON.stringify(
         {
             "command": command,
