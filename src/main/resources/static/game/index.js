@@ -1,10 +1,9 @@
 let grass, door, boxSpawn,goalBarrier,guideSpawn,water;
 let guideStand,chest,playerStand; let grassDead;
 let sprites;    let lastMovement="";    let username;
-let myUserEnityId; let i,g=0,gd=0, ba=0;
-let currentBoardName,boardWidth, boardHeight, boardArray;
+let myUserEnityId; let i,g=0,gd=0;
+let currentBoardName,boardWidth, boardHeight;
 let charAlias = new Map();
-let camX,camY,camH,camW;
 let boardMap;   let entitySprites;
 let animatedPlayerUp, animatedPlayerDown, animatedPlayerLeft, animatedPlayerRight;
 TILE_SIZE = 60;
@@ -12,21 +11,17 @@ WINDOW_SIZE = 20 * TILE_SIZE;
 let boardInfoURL = '/board';
 
 let app = new PIXI.Application({
-    width: WINDOW_SIZE, height: WINDOW_SIZE, transparent:true,
+    x: TILE_SIZE, y:TILE_SIZE, width: TILE_SIZE*10, height: TILE_SIZE*8, transparent: true
 });
 document.body.appendChild(app.view);
-let container = new PIXI.Container;
 let boardContainer=new PIXI.Container;
-let camera=new PIXI.Graphics();
 PIXI.loader.add("/game/landscape-sheet.json")
     .add("/game/guide-sheet.json")
     .add("/game/box-sheet.json")
     .add("/game/player-sheet.json")
     .load(setupSprites);
+boardContainer.position.set(TILE_SIZE*4,TILE_SIZE*6);
 app.stage.addChild(boardContainer);
-app.stage.addChild(container);
-container.addChild(camera);
-
 
 function setupSprites() {
     let landscape = PIXI.loader.resources["/game/landscape-sheet.json"].spritesheet;
@@ -84,7 +79,6 @@ function setupSprites() {
         grassDead[i].height=TILE_SIZE;
         grassDead[i].width=TILE_SIZE;
     }
-    boardArray=[];
 
     charAlias = [];
     charAlias[" "] = "grass";
@@ -149,7 +143,6 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
 } // end updateKeys
 function loadBoard(boardName){
     $.getJSON(boardInfoURL+'/'+boardName, function(board){
-        boardContainer.removeChildren();// first clear the board
         // load board details
         currentBoardName = boardName;
         boardWidth = board.width+1;
@@ -170,15 +163,13 @@ function loadBoard(boardName){
                         tile.x = ix * TILE_SIZE;
                         tile.y = iy * TILE_SIZE;
                         boardContainer.addChild(tile);
-                        boardArray[ba]=tile;
-                        pos++; g++; ba++;break;
+                        pos++; g++; break;
                     case "#":
                         tile= grassDead[gd];
                         tile.x = ix * TILE_SIZE;
                         tile.y = iy * TILE_SIZE;
                         boardContainer.addChild(tile);
-                        boardArray[ba]=tile;
-                        pos++; gd++; ba++; break;
+                        pos++; gd++; break;
                     default:
                         tileImage = sprites[charAlias[boardMap.charAt(pos)]];
                         tileImage.height = TILE_SIZE;
@@ -186,8 +177,7 @@ function loadBoard(boardName){
                         tileImage.x = ix * TILE_SIZE;
                         tileImage.y = iy * TILE_SIZE;
                         boardContainer.addChild(tileImage);
-                        boardArray[ba]=tile;
-                        pos++; ba++;
+                        pos++;
                 }
             }
         }// add entities on the tile (if any)
@@ -205,34 +195,20 @@ function loadBoard(boardName){
 function drawEntity(entity){
     if(entitySprites[entity.id]) { // entity has a sprite
         sprite = entitySprites[entity.id];
-        container.removeChild(sprite);
         sprite.x = entity.column * TILE_SIZE;
         sprite.y = entity.row * TILE_SIZE;
-        container.addChild(sprite);
+        boardContainer.addChild(sprite);
     } else {
         entityImage = sprites[entity.type];
         entityImage.x = entity.column * TILE_SIZE;
         entityImage.y = entity.row * TILE_SIZE;
         entityImage.height = TILE_SIZE;
         entityImage.width = TILE_SIZE;
-        container.addChild(entityImage);
+        boardContainer.addChild(entityImage);
         entitySprites[entity.id] = entityImage;
     }
-    //camera.beginFill(0x66CCFF);
-    camera.drawRect(0, 0, 480, 480);
-    camera.position.set(playerStand.x-240,playerStand.y-240);
-    camera.endFill();
-    camX=camera.getBounds().x;
-    camY=camera.getBounds().y;
-    camW=camera.getBounds().width;
-    camH=camera.getBounds().height;
-    console.log("x:",camX,"y:", camY,"width:",camW,"height:",camH);
-    for(i=0;i<boardArray.length-1;i++){
-        if (boardArray[i].x>camX&&boardArray[i].x<(camX+camW)&&boardArray[i].y > camY && boardArray[i].y < (camY + camH)) {
-                boardArray[i].visible = true;
-        }
-        else{boardArray[i].visible=false;}
-    }
+    boardContainer.pivot.x= playerStand.position.x;
+    boardContainer.pivot.y=playerStand.position.y;
 }
 // ***** The following methods display 'debugging'    *****
 // ***** information that's retrieved from the server *****
