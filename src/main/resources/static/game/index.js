@@ -5,13 +5,12 @@ let myUserEnityId; let i,g=0,gd=0;
 let currentBoardName,boardWidth, boardHeight;
 let charAlias = new Map();
 let boardMap;   let entitySprites;
-let animatedPlayerUp, animatedPlayerDown, animatedPlayerLeft, animatedPlayerRight;
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
 let boardInfoURL = '/board';
 
 let app = new PIXI.Application({
-    x: TILE_SIZE, y:TILE_SIZE, width: TILE_SIZE*10, height: TILE_SIZE*8, transparent: true
+   width: TILE_SIZE*10, height: TILE_SIZE*8, transparent: true
 });
 document.body.appendChild(app.view);
 let boardContainer=new PIXI.Container;
@@ -36,31 +35,10 @@ function setupSprites() {
 
     let box = PIXI.loader.resources["/game/box-sheet.json"].spritesheet;
     chest = new PIXI.Sprite(box.textures["box_1.png"]);
-    /**
-     * //animation for chest start chest closed, mid, then open and stay open
-     //make animation only happen when "hit"
-     * animatedChest= new PIXI.AnimatedSprite(box.animations["box"]);
-     *     animatedChest.animationSpeed = 0.011;
-     *     animatedChest.play();
-     *     animatedChest.loop=false;
-     *     app.stage.addChild(animatedChest);
-     */
+
     let player = PIXI.loader.resources["/game/player-sheet.json"].spritesheet;
     playerStand = new PIXI.Sprite(player.textures["main_down_stand.png"]);
-    /**
-     let animatedPlayerLeft= new PIXI.AnimatedSprite(player.animations["main_left_walk"]);
-     animatedPlayerLeft.animationSpeed = 0.167;
-     animatedPlayerLeft.play();
-     let animatedPlayerRight= new PIXI.AnimatedSprite(player.animations["main_right_walk"]);
-     animatedPlayerRight.animationSpeed = 0.167;
-     animatedPlayerRight.play();
-     let animatedPlayerUp= new PIXI.AnimatedSprite(player.animations["main_up_walk"]);
-     animatedPlayerUp.animationSpeed = 0.167;
-     animatedPlayerUp.play();
-     let animatedPlayerDown= new PIXI.AnimatedSprite(player.animations["main_down_walk"]);
-     animatedPlayerDown.animationSpeed = 0.167;
-     animatedPlayerDown.play();
-    **/
+
     sprites = [];
     sprites["door"] = door;
     sprites["player"] = playerStand;
@@ -102,7 +80,7 @@ function setupSprites() {
             loadBoard(entity.board);
         });
     });
-}
+}//end of setupSprites
 function updateKeys(e){ // updates currentKey with the latest key pressed.
     let currentKey = e.key;
     switch (currentKey){
@@ -191,7 +169,7 @@ function loadBoard(boardName){
             }
         );
     });
-}
+}//end of loadBoard
 function drawEntity(entity){
     if(entitySprites[entity.id]) { // entity has a sprite
         sprite = entitySprites[entity.id];
@@ -206,10 +184,10 @@ function drawEntity(entity){
         entityImage.width = TILE_SIZE;
         boardContainer.addChild(entityImage);
         entitySprites[entity.id] = entityImage;
-    }
+    } //keep the player centered on the players position
     boardContainer.pivot.x= playerStand.position.x;
     boardContainer.pivot.y=playerStand.position.y;
-}
+}//end of drawEntity
 // ***** The following methods display 'debugging'    *****
 // ***** information that's retrieved from the server *****
 function sendCommand(command, parameter) {      //sends a command
@@ -219,7 +197,7 @@ function sendCommand(command, parameter) {      //sends a command
             "parameter": parameter
         }
     ));
-}
+}//end sendCommand
 function eventReaction(event) {
     switch (event.type) {
         case "entity-created":
@@ -247,4 +225,4 @@ function eventReaction(event) {
             break;
         default:
     }
-}
+}//end of eventReaction
