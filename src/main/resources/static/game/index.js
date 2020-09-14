@@ -2,6 +2,10 @@ let grass, door, boxSpawn,goalBarrier,guideSpawn,water;
 let guideStand,chest,playerStand; let grassDead;
 let sprites;    let lastMovement="";    let username;
 let myUserEnityId; let i,g=0,gd=0;
+let playerX, playerY;
+let screenCenterX= (600 * .5);
+let screenCenterY= (480 * .5);
+let newMapPosX, newMapPosY;
 let currentBoardName,boardWidth, boardHeight;
 let charAlias = new Map();
 let boardMap;   let entitySprites;
@@ -12,15 +16,27 @@ let boardInfoURL = '/board';
 let app = new PIXI.Application({
    width: TILE_SIZE*10, height: TILE_SIZE*8, transparent: true
 });
+let speechBar=new PIXI.Container();
 document.body.appendChild(app.view);
 let boardContainer=new PIXI.Container;
+let camera=new PIXI.Graphics();
 PIXI.loader.add("/game/landscape-sheet.json")
     .add("/game/guide-sheet.json")
     .add("/game/box-sheet.json")
     .add("/game/player-sheet.json")
     .load(setupSprites);
-boardContainer.position.set(TILE_SIZE*4,TILE_SIZE*6);
+//boardContainer.position.x=TILE_SIZE*4;
+//boardContainer.position.y=TILE_SIZE*6;
 app.stage.addChild(boardContainer);
+app.stage.addChild(camera);
+//make the bar to hold speech in
+let bottomBar=new PIXI.Graphics();
+bottomBar.beginFill(0x000000);
+bottomBar.lineStyle(5,0x808080,1);
+bottomBar.drawRect(TILE_SIZE, TILE_SIZE*7.5,TILE_SIZE*8,30);
+bottomBar.endFill();
+//add text to bar when speech and when there is no speech inventory
+speechBar.addChildAt(bottomBar);
 
 function setupSprites() {
     let landscape = PIXI.loader.resources["/game/landscape-sheet.json"].spritesheet;
@@ -158,7 +174,8 @@ function loadBoard(boardName){
                         pos++;
                 }
             }
-        }// add entities on the tile (if any)
+        } app.stage.addChild(speechBar);
+        // add entities on the tile (if any)
         $.getJSON('/container/board/'+currentBoardName,
             function(entityIds) {
                 entityIds.forEach(function (id) {
@@ -184,9 +201,26 @@ function drawEntity(entity){
         entityImage.width = TILE_SIZE;
         boardContainer.addChild(entityImage);
         entitySprites[entity.id] = entityImage;
-    } //keep the player centered on the players position
-    boardContainer.pivot.x= playerStand.position.x;
-    boardContainer.pivot.y=playerStand.position.y;
+    }
+    //keep boardContainer centered on the players position without going off screen
+    playerX = playerStand.position.x;
+    playerY = playerStand.position.y;
+    newMapPosX= -playerX + screenCenterX;
+    newMapPosY= -playerY + screenCenterY;
+    if(newMapPosX < -boardContainer.width+600){ //if new x is less than (-bC width + app width)
+        newMapPosX = -boardContainer.width+600;
+    }
+    if(newMapPosX > 0){ //dont follow player
+        newMapPosX = 0;
+    }
+    if(newMapPosY < -boardContainer.height+480){//if new y is less than (-bC height + app height)
+        newMapPosY = -boardContainer.height+480;
+    }
+    if(newMapPosY > 0){ //don't follow player
+        newMapPosY = 0;
+    }//and apply the calculated map positions to the map and player containers
+    boardContainer.x = newMapPosX;
+    boardContainer.y = newMapPosY;
 }//end of drawEntity
 // ***** The following methods display 'debugging'    *****
 // ***** information that's retrieved from the server *****
