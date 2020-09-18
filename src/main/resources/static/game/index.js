@@ -81,7 +81,7 @@ function setupTextures() {
     charAlias = [];
     charAlias[" "] = "grass.png";
     charAlias["#"] = "grass_dead.png";
-    charAlias["*"] = "door.png";
+    charAlias["@"] = "door.png";
 
 }//end of setupSprites
 
