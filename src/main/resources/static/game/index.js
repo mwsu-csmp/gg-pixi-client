@@ -1,5 +1,8 @@
-let tileSprites = [];
-let entitySprites = [];
+let entityTextures = []; // default textures indexed by entity type
+
+let tileSprites = [];    // sprites for each tile on the current board indexed by "<column>-<row>"
+let entitySprites = [];  // sprites for each currently loaded entity indexed by entity ID
+
 let lastMovement="";
 let myUserEnityId;
 let playerX, playerY;
@@ -16,6 +19,7 @@ let boardInfoURL = '/board';
 let app = new PIXI.Application({
    width: TILE_SIZE*10, height: TILE_SIZE*8, transparent: true
 });
+
 let speechBar = new PIXI.Container();
 document.body.appendChild(app.view);
 let boardContainer=new PIXI.Container;
@@ -38,8 +42,6 @@ let username = $($.find('h1')[0]).html();
 // TODO: load sprite sheet metadata, load sheets indicated in metadata
 
 PIXI.loader.add("/game/landscape-sheet.json")
-    .add("/game/guide-sheet.json")
-    .add("/game/box-sheet.json")
     .add("/game/player-sheet.json")
     .load(connectToStompGameServer());
 
@@ -68,9 +70,14 @@ function launchPixiClient() {
 }
 
 function setupTextures() {
+    // TODO: develop scheme for loading sprite sheets that is game independent
+
     landscape = PIXI.loader.resources["/game/landscape-sheet.json"].spritesheet;
     player = PIXI.loader.resources["/game/player-sheet.json"].spritesheet;
 
+    entityTextures['player'] = player.textures['main_down_stand.png']
+
+    // TODO: have server share tile char -> tile type via a webservice and load here
     charAlias = [];
     charAlias[" "] = "grass.png";
     charAlias["#"] = "grass_dead.png";
@@ -167,7 +174,7 @@ function drawEntity(entity){
     } else {
         console.log('creating new sprite for entity: ')
         console.log(entity)
-        entityImage = new PIXI.Sprite(player.textures['main_down_stand.png']) // TODO: fix to find proper texture
+        entityImage = new PIXI.Sprite(entityTextures[entity.type])
         entityImage.x = entity.column * TILE_SIZE;
         entityImage.y = entity.row * TILE_SIZE;
         entityImage.height = TILE_SIZE;
