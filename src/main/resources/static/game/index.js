@@ -1,4 +1,4 @@
-let entityTextures = []; // default textures indexed by entity type
+let spritesheet; // texture sheet for game
 
 let tileSprites = [];    // sprites for each tile on the current board indexed by "<column>-<row>"
 let entitySprites = [];  // sprites for each currently loaded entity indexed by entity ID
@@ -10,7 +10,6 @@ let screenCenterX= (600 * .5);
 let screenCenterY= (480 * .5);
 let newMapPosX, newMapPosY;
 let currentBoardName,boardWidth, boardHeight;
-let charAlias = new Map();
 let boardMap;
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
@@ -41,8 +40,7 @@ let username = $($.find('h1')[0]).html();
 
 // TODO: load sprite sheet metadata, load sheets indicated in metadata
 
-PIXI.loader.add("/game/landscape-sheet.json")
-    .add("/game/player-sheet.json")
+PIXI.loader.add("/game/game.json")
     .load(connectToStompGameServer());
 
 
@@ -65,25 +63,38 @@ function connectToStompGameServer() {
 }
 
 function launchPixiClient() {
-    setupTextures()
+    spritesheet = PIXI.loader.resources["/game/game.json"].spritesheet;
     loadBoard(currentBoardName)
 }
 
-function setupTextures() {
-    // TODO: develop scheme for loading sprite sheets that is game independent
+/* locate the best possible texture for the specified tile */
+function resolveTileTexture(boardName, row, col, tileTypes, tileChar) {
+    // TODO: look up tile detail (possibly in background)
+    // TODO: use a tile object instead of the four params above?
 
-    landscape = PIXI.loader.resources["/game/landscape-sheet.json"].spritesheet;
-    player = PIXI.loader.resources["/game/player-sheet.json"].spritesheet;
+    // check to see if a default texture for the tile type exists
+    if(tileTypes[tileChar]) {
+        filename = 'tile-' + tileTypes[tileChar] + '.png';
+        if(spritesheet.textures[filename])
+            return spritesheet.textures[filename];
+    }
 
-    entityTextures['player'] = player.textures['main_down_stand.png']
+    // no more unique texture found, use generic tile texture
+    return spritesheet.textures['tile.png'];
+}
 
-    // TODO: have server share tile char -> tile type via a webservice and load here
-    charAlias = [];
-    charAlias[" "] = "grass.png";
-    charAlias["#"] = "grass_dead.png";
-    charAlias["@"] = "door.png";
+/* locate the best possible texture for the specified entity */
+function resolveEntityTexture(entity) {
+    // TODO: check for presence of attributes that signify a more specific entity texture
 
-}//end of setupSprites
+    // check to see if a default texture for the tile type exists
+    filename = 'entity-' + entity.type + '.png';
+        if(spritesheet.textures[filename])
+            return spritesheet.textures[filename];
+
+    // no more unique texture found, use generic entity texture
+    return spritesheet.textures['entity.png'];
+}
 
 function updateKeys(e){ // updates currentKey with the latest key pressed.
     let currentKey = e.key;
@@ -130,6 +141,7 @@ function loadBoard(boardName){
         boardWidth = board.width+1;
         boardHeight = board.height;
         boardMap = board.tilemap;
+        tileTypes = board.tileTypes;
         console.log(boardMap);
         console.log(currentBoardName);
         // create board tiles
@@ -138,9 +150,8 @@ function loadBoard(boardName){
             for(let ix = 0; ix < boardWidth; ix++) {
                 tileChar = boardMap.charAt(pos)
                 if(tileChar != "\n") {
-                        console.log('rendering sprite for ('+ix+','+iy+'): "'+tileChar+'" ' + charAlias[boardMap.charAt(pos)])
-                        console.log(landscape.textures[charAlias[boardMap.charAt(pos)]])
-                        tileSprite = new PIXI.Sprite(landscape.textures[charAlias[boardMap.charAt(pos)]]);
+                        console.log('rendering sprite for ('+ix+','+iy+'): "'+tileChar+'" ')
+                        tileSprite = new PIXI.Sprite(resolveTileTexture(boardName, iy, ix, tileTypes, tileChar));
                         tileSprite.height = TILE_SIZE;
                         tileSprite.width = TILE_SIZE;
                         tileSprite.x = ix * TILE_SIZE;
@@ -174,7 +185,7 @@ function drawEntity(entity){
     } else {
         console.log('creating new sprite for entity: ')
         console.log(entity)
-        entityImage = new PIXI.Sprite(entityTextures[entity.type])
+        entityImage = new PIXI.Sprite(resolveEntityTexture(entity))
         entityImage.x = entity.column * TILE_SIZE;
         entityImage.y = entity.row * TILE_SIZE;
         entityImage.height = TILE_SIZE;
