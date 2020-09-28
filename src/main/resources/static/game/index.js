@@ -132,6 +132,10 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             sendCommand("INTERACT", lastMovement.toString());
             currentKey=null;
             break;
+        case "p": // TEST JSON for messages
+            testjson = '{"type":"speech", "properties":{"message": "yo", "user_id": '+myUserEnityId+', "responses":["hello to you to", "get lost"]}   }';
+            console.log(testjson)
+            eventReaction(JSON.parse(testjson));
     }
 } // end updateKeys
 function loadBoard(boardName){
