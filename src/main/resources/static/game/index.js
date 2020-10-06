@@ -13,27 +13,27 @@ let currentBoardName,boardWidth, boardHeight;
 let boardMap;
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
+APP_HEIGHT=TILE_SIZE*8;
+APP_WIDTH=TILE_SIZE*10;
 let boardInfoURL = '/board';
 
 let app = new PIXI.Application({
-   width: TILE_SIZE*10, height: TILE_SIZE*8, transparent: true
+   width: APP_WIDTH, height: APP_HEIGHT, transparent: true
 });
 
 let speechBar = new PIXI.Container();
+let style= new PIXI.TextStyle({fill: "white", fontFamily: "Times New Roman", fontSize: 24});
 document.body.appendChild(app.view);
+
 let boardContainer=new PIXI.Container;
-let camera=new PIXI.Graphics();
-//boardContainer.position.x=TILE_SIZE*4;
-//boardContainer.position.y=TILE_SIZE*6;
 app.stage.addChild(boardContainer);
-app.stage.addChild(camera);
 //make the bar to hold speech in
 let bottomBar=new PIXI.Graphics();
 bottomBar.beginFill(0x000000);
 bottomBar.lineStyle(5,0x808080,1);
-bottomBar.drawRect(TILE_SIZE, TILE_SIZE*7.5,TILE_SIZE*8,30);
+bottomBar.drawRect(TILE_SIZE, TILE_SIZE*7.15,TILE_SIZE*8,TILE_SIZE);
 bottomBar.endFill();
-//add text to bar when speech and when there is no speech inventory
+//add text to bar when speech and when there is no speech=inventory
 speechBar.addChildAt(bottomBar);
 
 let username = $($.find('h1')[0]).html();
@@ -133,9 +133,11 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             currentKey=null;
             break;
         case "p": // TEST JSON for messages
-            testjson = '{"type":"speech", "properties":{"message": "yo", "user_id": '+myUserEnityId+', "responses":["hello to you to", "get lost"]}   }';
+            testjson = '{"type":"speech", "properties":{"message": "yabbadabbadoooo", "user_id": '+myUserEnityId+', "responses":["Hello to you too!", "Get lost"]}   }';
             console.log(testjson)
             eventReaction(JSON.parse(testjson));
+            break;
+            //add button cases for response choices
     }
 } // end updateKeys
 function loadBoard(boardName){
@@ -206,14 +208,14 @@ function drawEntity(entity){
         playerY = entitySprites[myUserEnityId].position.y;
         newMapPosX = -playerX + screenCenterX;
         newMapPosY = -playerY + screenCenterY;
-        if (newMapPosX < -boardContainer.width + 600) { //if new x is less than (-bC width + app width)
-            newMapPosX = -boardContainer.width + 600;
+        if (newMapPosX < -boardContainer.width + APP_WIDTH) { //if new x is less than (-bC width + app width)
+            newMapPosX = -boardContainer.width + APP_WIDTH;
         }
         if (newMapPosX > 0) { //dont follow player
             newMapPosX = 0;
         }
-        if (newMapPosY < -boardContainer.height + 480) {//if new y is less than (-bC height + app height)
-            newMapPosY = -boardContainer.height + 480;
+        if (newMapPosY < -boardContainer.height + APP_HEIGHT) {//if new y is less than (-bC height + app height)
+            newMapPosY = -boardContainer.height + APP_HEIGHT;
         }
         if (newMapPosY > 0) { //don't follow player
             newMapPosY = 0;
@@ -254,13 +256,29 @@ function eventReaction(event) {
             });
             break;
         case "speech":
-            window.alert(event.properties.message);
+            i=0;
+            message=new PIXI.Text(event.properties.user_id+": " +event.properties.message,style);
+            message.position.set(TILE_SIZE+6,TILE_SIZE*7.2);
+            speechBar.addChild(message);
+            scrollerText();
+
+            testResponse=event.properties.responses;
+            response=new PIXI.Text("1: "+testResponse[0] +"        2: "+testResponse[1],style);
+            response.position.set(TILE_SIZE+6,TILE_SIZE*7.6);
+            speechBar.addChild(response);
             break;
         case "command"://ignore
             break;
         default:
     }
 }//end of eventReaction
-
-
+function scrollerText(){
+    //need to make a viewport of scrolling message only displaying
+    // what is inside the bottom bar
+    app.render(speechBar);
+    message.y-=0.05;
+    if(i<=450){requestAnimationFrame(scrollerText);}
+    else{message.y=TILE_SIZE*7.2; i=0;requestAnimationFrame(scrollerText);}
+    i++;
+}
 document.onkeydown = updateKeys;
