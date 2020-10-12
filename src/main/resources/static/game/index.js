@@ -137,7 +137,10 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             console.log(testjson)
             eventReaction(JSON.parse(testjson));
             break;
-            //add button cases for response choices
+        case "1":
+            //button case for response 1
+        case "2":
+            //button case for response 2
     }
 } // end updateKeys
 function loadBoard(boardName){
@@ -257,6 +260,7 @@ function eventReaction(event) {
             break;
         case "speech":
             i=0;
+            loop=0;
             message=new PIXI.Text(event.properties.user_id+": " +event.properties.message,style);
             message.position.set(TILE_SIZE+6,TILE_SIZE*7.2);
             speechBar.addChild(message);
@@ -273,12 +277,20 @@ function eventReaction(event) {
     }
 }//end of eventReaction
 function scrollerText(){
-    //need to make a viewport of scrolling message only displaying
-    // what is inside the bottom bar
     app.render(speechBar);
+    //if(loop==4){message.visible=false;}
     message.y-=0.05;
-    if(i<=450){requestAnimationFrame(scrollerText);}
-    else{message.y=TILE_SIZE*7.2; i=0;requestAnimationFrame(scrollerText);}
+    if(i<=200){
+        message.alpha-=0.008;
+        requestAnimationFrame(scrollerText);
+    }
+    else{
+        if(loop==4){message.visible=false;}
+        message.y=TILE_SIZE*7.2; i=0;
+        message.alpha=1;
+        requestAnimationFrame(scrollerText);
+        loop++;
+    }
     i++;
 }
 document.onkeydown = updateKeys;
