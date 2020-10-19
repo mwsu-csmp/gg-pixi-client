@@ -307,8 +307,8 @@ function messageHandler(user, option, text){
         mess_list.push(mess);
     }
     if(mess_list.length>4){ //containing the amount to 4 lines eleminating bottom mess
-        text_list.shift(0);
-        mess_list.shift(0);
+        text_list.shift();
+        mess_list.shift();
         text_list.length=4;
         mess_list.length=4;
     }
