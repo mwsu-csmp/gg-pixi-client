@@ -2,19 +2,22 @@ let spritesheet; // texture sheet for game
 
 let tileSprites = [];    // sprites for each tile on the current board indexed by "<column>-<row>"
 let entitySprites = [];  // sprites for each currently loaded entity indexed by entity ID
+let text_list=[];
+let mess_list=[];
 
-let lastMovement="";
-let myUserEnityId;
-let playerX, playerY;
-let screenCenterX= (600 * .5);
-let screenCenterY= (480 * .5);
-let newMapPosX, newMapPosY;
-let currentBoardName,boardWidth, boardHeight;
-let boardMap;
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
 APP_HEIGHT=TILE_SIZE*8;
 APP_WIDTH=TILE_SIZE*10;
+let lastMovement="";
+let myUserEnityId;
+let playerX, playerY;
+bBY=TILE_SIZE*7.15;
+let screenCenterX= (APP_WIDTH * .5);
+let screenCenterY= (APP_WIDTH * .5);
+let newMapPosX, newMapPosY;
+let currentBoardName,boardWidth, boardHeight;
+let boardMap;
 let boardInfoURL = '/board';
 
 let app = new PIXI.Application({
@@ -22,7 +25,7 @@ let app = new PIXI.Application({
 });
 
 let speechBar = new PIXI.Container();
-let style= new PIXI.TextStyle({fill: "white", fontFamily: "Times New Roman", fontSize: 24});
+let style= new PIXI.TextStyle({fill: "white", fontFamily: "Times New Roman", fontSize: 22});
 document.body.appendChild(app.view);
 
 let boardContainer=new PIXI.Container;
@@ -31,7 +34,7 @@ app.stage.addChild(boardContainer);
 let bottomBar=new PIXI.Graphics();
 bottomBar.beginFill(0x000000);
 bottomBar.lineStyle(5,0x808080,1);
-bottomBar.drawRect(TILE_SIZE, TILE_SIZE*7.15,TILE_SIZE*8,TILE_SIZE);
+bottomBar.drawRect(TILE_SIZE, bBY,TILE_SIZE*8,TILE_SIZE*2);
 bottomBar.endFill();
 //add text to bar when speech and when there is no speech=inventory
 speechBar.addChildAt(bottomBar);
@@ -133,7 +136,7 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             currentKey=null;
             break;
         case "p": // TEST JSON for messages
-            testjson = '{"type":"speech", "properties":{"message": "yabbadabbadoooo", "user_id": '+myUserEnityId+', "responses":["Hello to you too!", "Get lost"]}   }';
+            testjson = '{"type":"speech", "properties":{"message":["yabbadabbadoooo","babam"], "user_id": '+myUserEnityId+', "responses":["Hello to you too!", "Get lost"]}   }';
             console.log(testjson)
             eventReaction(JSON.parse(testjson));
             break;
@@ -259,38 +262,67 @@ function eventReaction(event) {
             });
             break;
         case "speech":
-            i=0;
-            loop=0;
-            message=new PIXI.Text(event.properties.user_id+": " +event.properties.message,style);
-            message.position.set(TILE_SIZE+6,TILE_SIZE*7.2);
-            speechBar.addChild(message);
-            scrollerText();
-
+            i=0; k=0;
+            userID=event.properties.user_id;
+            testMessage=event.properties.message;
+            for(i=0;i<testMessage.length;i++) {
+                if(testMessage[i]==testMessage[0]){messageHandler(userID, 0, testMessage[i]);}
+                else{messageHandler(0, 0, testMessage[i]);}
+                console.log("Passed " +testMessage[i]);
+            }
+           // scrollerText();
             testResponse=event.properties.responses;
-            response=new PIXI.Text("1: "+testResponse[0] +"        2: "+testResponse[1],style);
-            response.position.set(TILE_SIZE+6,TILE_SIZE*7.6);
-            speechBar.addChild(response);
+            for(k=0;k<testResponse.length;k++) {
+                messageHandler(0, k+1, testResponse[k]);
+                console.log("Passed " + testResponse[k]);
+            }
             break;
         case "command"://ignore
             break;
         default:
     }
 }//end of eventReaction
+function messageHandler(user, option, text){
+    text_list.push({
+        speaker:String(user),
+        options:String(option),
+        texts: String(text)
+    });//push inputs into text_list
+    // then will push each message made out of text into mess_list
+    i=text_list.length-1;       j=0;
+    if(text_list[i].options=="0"){//message handling
+        if(text_list[i].speaker!="0"){
+            mess = new PIXI.Text(text_list[i].speaker + ": " + text_list[i].texts, style);
+            mess.position.set(TILE_SIZE + 6, bBY+(i*22));
+        }
+        else{
+            mess = new PIXI.Text( text_list[i].texts, style);
+            mess.position.set(TILE_SIZE + 30, bBY+(i*22));
+        }
+        mess_list.push(mess);
+    }
+    else{//response handling
+        mess=new PIXI.Text(text_list[i].options+") " +text_list[i].texts, style);
+        mess.position.set(TILE_SIZE + 6, bBY+(i*22));
+        mess_list.push(mess);
+    }
+    if(mess_list.length>4){ //containing the amount to 4 lines eleminating bottom mess
+        text_list.unshift(0);
+        mess_list.unshift(0);
+        text_list.length=4;
+        mess_list.length=4;
+    }
+    for(j=0;j<=mess_list.length-1;j++) {//add every message
+        speechBar.addChild(mess_list[j]);
+    }
+    if(i>=3){ //if there is more than 3 lines of text make box bigger and move text
+        bottomBar.y-=40;
+        for (j=0;j<=i;j++) {
+            mess_list[j].y -= 40;
+        }
+    }
+}//end of messageHandler
 function scrollerText(){
     app.render(speechBar);
-    //if(loop==4){message.visible=false;}
-    message.y-=0.05;
-    if(i<=200){
-        message.alpha-=0.008;
-        requestAnimationFrame(scrollerText);
-    }
-    else{
-        if(loop==4){message.visible=false;}
-        message.y=TILE_SIZE*7.2; i=0;
-        message.alpha=1;
-        requestAnimationFrame(scrollerText);
-        loop++;
-    }
-    i++;
 }
 document.onkeydown = updateKeys;
