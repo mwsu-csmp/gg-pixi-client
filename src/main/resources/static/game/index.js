@@ -1,5 +1,4 @@
 let spritesheet; // texture sheet for game
-
 let tileSprites = [];    // sprites for each tile on the current board indexed by "<column>-<row>"
 let entitySprites = [];  // sprites for each currently loaded entity indexed by entity ID
 let text_list=[];
@@ -12,20 +11,24 @@ APP_WIDTH=TILE_SIZE*10;
 let lastMovement="";
 let myUserEnityId;
 let playerX, playerY;
-bBY=TILE_SIZE*7.15;
+let bBY=TILE_SIZE*7.15;
+let yShift=40;
+let mess_listMax=4;
 let screenCenterX= (APP_WIDTH * .5);
 let screenCenterY= (APP_WIDTH * .5);
 let newMapPosX, newMapPosY;
 let currentBoardName,boardWidth, boardHeight;
 let boardMap;
 let boardInfoURL = '/board';
+let messTime=10000,respTime=15000,timeInc=1000;
 
 let app = new PIXI.Application({
-   width: APP_WIDTH, height: APP_HEIGHT, transparent: true
+    width: APP_WIDTH, height: APP_HEIGHT, transparent: true
 });
 
 let speechBar = new PIXI.Container();
-let style= new PIXI.TextStyle({fill: "white", fontFamily: "Times New Roman", fontSize: 22});
+let fSize=22;
+let style= new PIXI.TextStyle({fill: "white", fontFamily: "Times New Roman", fontSize: fSize});
 document.body.appendChild(app.view);
 
 let boardContainer=new PIXI.Container;
@@ -34,7 +37,7 @@ app.stage.addChild(boardContainer);
 let bottomBar=new PIXI.Graphics();
 bottomBar.beginFill(0x000000);
 bottomBar.lineStyle(5,0x808080,1);
-bottomBar.drawRect(TILE_SIZE, bBY,TILE_SIZE*8,TILE_SIZE*2);
+bottomBar.drawRect(TILE_SIZE, bBY,APP_HEIGHT,TILE_SIZE*2);
 bottomBar.endFill();
 //add text to bar when speech and when there is no speech=inventory
 speechBar.addChildAt(bottomBar);
@@ -92,8 +95,8 @@ function resolveEntityTexture(entity) {
 
     // check to see if a default texture for the tile type exists
     filename = 'entity-' + entity.type + '.png';
-        if(spritesheet.textures[filename])
-            return spritesheet.textures[filename];
+    if(spritesheet.textures[filename])
+        return spritesheet.textures[filename];
 
     // no more unique texture found, use generic entity texture
     return spritesheet.textures['entity.png'];
@@ -139,11 +142,12 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             testjson = '{"type":"speech", "properties":{"message":["yabbadabbadoooo","babam"], "user_id": '+myUserEnityId+', "responses":["Hello to you too!", "Get lost"]}   }';
             console.log(testjson)
             eventReaction(JSON.parse(testjson));
+            addingTimer();
             break;
         case "1":
-            //button case for response 1
+        //button case for response 1
         case "2":
-            //button case for response 2
+        //button case for response 2
     }
 } // end updateKeys
 function loadBoard(boardName){
@@ -162,14 +166,14 @@ function loadBoard(boardName){
             for(let ix = 0; ix < boardWidth; ix++) {
                 tileChar = boardMap.charAt(pos)
                 if(tileChar != "\n") {
-                        console.log('rendering sprite for ('+ix+','+iy+'): "'+tileChar+'" ')
-                        tileSprite = new PIXI.Sprite(resolveTileTexture(boardName, iy, ix, tileTypes, tileChar));
-                        tileSprite.height = TILE_SIZE;
-                        tileSprite.width = TILE_SIZE;
-                        tileSprite.x = ix * TILE_SIZE;
-                        tileSprite.y = iy * TILE_SIZE;
-                        tileSprites[ix+','+iy] = tileSprite
-                        boardContainer.addChild(tileSprite);
+                    console.log('rendering sprite for ('+ix+','+iy+'): "'+tileChar+'" ')
+                    tileSprite = new PIXI.Sprite(resolveTileTexture(boardName, iy, ix, tileTypes, tileChar));
+                    tileSprite.height = TILE_SIZE;
+                    tileSprite.width = TILE_SIZE;
+                    tileSprite.x = ix * TILE_SIZE;
+                    tileSprite.y = iy * TILE_SIZE;
+                    tileSprites[ix+','+iy] = tileSprite
+                    boardContainer.addChild(tileSprite);
                 }
                 pos++;
             }
@@ -265,14 +269,16 @@ function eventReaction(event) {
             i=0; k=0;
             userID=event.properties.user_id;
             testMessage=event.properties.message;
-            for(i=0;i<testMessage.length;i++) {
-                if(testMessage[i]==testMessage[0]){messageHandler(userID, 0, testMessage[i]);}
+            for(i=0;i<=testMessage.length-1;i++) {
+                if(testMessage[i]==testMessage[0]){
+                    messageHandler(userID, 0, testMessage[i]);
+                }
                 else{messageHandler(0, 0, testMessage[i]);}
                 console.log("Passed " +testMessage[i]);
             }
-           // scrollerText();
-            testResponse=event.properties.responses;
-            for(k=0;k<testResponse.length;k++) {
+            //var myVar = setInterval(myTimer ,10000);
+           testResponse=event.properties.responses;
+            for(k=0;k<=testResponse.length-1;k++) {
                 messageHandler(0, k+1, testResponse[k]);
                 console.log("Passed " + testResponse[k]);
             }
@@ -293,36 +299,57 @@ function messageHandler(user, option, text){
     if(text_list[i].options=="0"){//message handling
         if(text_list[i].speaker!="0"){
             mess = new PIXI.Text(text_list[i].speaker + ": " + text_list[i].texts, style);
-            mess.position.set(TILE_SIZE + 6, bBY+(i*22));
+            mess.position.set(TILE_SIZE + 6, bBY+(i*fSize));
         }
         else{
             mess = new PIXI.Text( text_list[i].texts, style);
-            mess.position.set(TILE_SIZE + 30, bBY+(i*22));
+            mess.position.set((TILE_SIZE*1.5), bBY+(i*fSize));
         }
         mess_list.push(mess);
     }
     else{//response handling
         mess=new PIXI.Text(text_list[i].options+") " +text_list[i].texts, style);
-        mess.position.set(TILE_SIZE + 6, bBY+(i*22));
+        mess.position.set(TILE_SIZE + 6, bBY+(i*fSize));
         mess_list.push(mess);
     }
-    if(mess_list.length>4){ //containing the amount to 4 lines eleminating bottom mess
+    if(mess_list.length>mess_listMax){ //containing the amount to 4 lines deleting bottom mess
         text_list.shift();
         mess_list.shift();
-        text_list.length=4;
-        mess_list.length=4;
+        text_list.length=mess_listMax;
+        mess_list.length=mess_listMax;
     }
-    for(j=0;j<=mess_list.length-1;j++) {//add every message
+    for(j=0;j<=mess_list.length-1;j++) {//add every message to speechBar container
         speechBar.addChild(mess_list[j]);
     }
     if(i>=3){ //if there is more than 3 lines of text make box bigger and move text
-        bottomBar.y-=40;
+        bottomBar.y-=yShift;
         for (j=0;j<=i;j++) {
-            mess_list[j].y -= 40;
+            mess_list[j].y -=yShift;
         }
     }
 }//end of messageHandler
-function scrollerText(){
-    app.render(speechBar);
-}
+function addingTimer(){
+    for(i=0;i<=(mess_listMax*0.5)-1;i++) {//set time for messages
+        setTimeout(textDemise, messTime+(i*timeInc));
+    }
+    for(i=(mess_listMax*0.5);i<mess_listMax;i++) {//set time for responses
+        setTimeout(textDemise, respTime+(i*timeInc));
+    }
+}//end of addingTime
+function textDemise(){
+    i=mess_list.length-1;
+    for(j=0;j<=mess_list.length-1;j++) {//remove every message
+        speechBar.removeChild(mess_list[j]);
+    }
+    mess_list.shift();
+    text_list.shift();
+     for(j=0;j<=mess_list.length-1;j++) {//add every message
+        speechBar.addChild(mess_list[j]);
+    }
+    if(i==2){ //if there is 2 lines of text make box go back to og y
+        bottomBar.y+=yShift;
+    }
+    var d = new Date();
+    console.log("text deleted at: "+d.toLocaleTimeString());
+}//end of textTimer
 document.onkeydown = updateKeys;
