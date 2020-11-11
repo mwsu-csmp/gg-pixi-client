@@ -3,6 +3,7 @@ let tileSprites = [];    // sprites for each tile on the current board indexed b
 let entitySprites = [];  // sprites for each currently loaded entity indexed by entity ID
 let text_list=[];
 let mess_list=[];
+let userID, responseList=[];
 
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
@@ -13,6 +14,7 @@ let myUserEnityId;
 let playerX, playerY;
 let bBY=TILE_SIZE*7.15;
 let yShift=40;
+let timeM=undefined, timeR=undefined;
 let mess_listMax=4;
 let screenCenterX= (APP_WIDTH * .5);
 let screenCenterY= (APP_WIDTH * .5);
@@ -21,6 +23,7 @@ let currentBoardName,boardWidth, boardHeight;
 let boardMap;
 let boardInfoURL = '/board';
 let messTime=10000,respTime=15000,timeInc=1000;
+numOfResponses=0;
 
 let app = new PIXI.Application({
     width: APP_WIDTH, height: APP_HEIGHT, transparent: true
@@ -139,9 +142,12 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             currentKey=null;
             break;
         case "p": // TEST JSON for messages
-            testjson = '{"type":"speech", "properties":{"message":["yabbadabbadoooo","babam"], "user_id": '+myUserEnityId+', "responses":["Hello to you too!", "Get lost"]}   }';
-            console.log(testjson)
+            testjson = '{"type":"speech", "properties":{"message":"yabbadabadoo", "user_id": '+myUserEnityId+', "responses":["Hello to you too!", "Get lost"]}   }';
+            console.log(testjson);
+            counter=1;
             eventReaction(JSON.parse(testjson));
+            if(timeM!==undefined){clearTimeout(timeM); timeM=undefined; console.log("clear timeM");};
+            if(timeR!==undefined){clearTimeout(timeR);  timeR=undefined;console.log("clear timeR");};
             addingTimer();
             break;
         case "1":
@@ -164,7 +170,7 @@ function loadBoard(boardName){
         let pos = 0;
         for(let iy = 0; iy < boardHeight; iy++){
             for(let ix = 0; ix < boardWidth; ix++) {
-                tileChar = boardMap.charAt(pos)
+                tileChar = boardMap.charAt(pos);
                 if(tileChar != "\n") {
                     console.log('rendering sprite for ('+ix+','+iy+'): "'+tileChar+'" ')
                     tileSprite = new PIXI.Sprite(resolveTileTexture(boardName, iy, ix, tileTypes, tileChar));
@@ -172,7 +178,7 @@ function loadBoard(boardName){
                     tileSprite.width = TILE_SIZE;
                     tileSprite.x = ix * TILE_SIZE;
                     tileSprite.y = iy * TILE_SIZE;
-                    tileSprites[ix+','+iy] = tileSprite
+                    tileSprites[ix+','+iy] = tileSprite;
                     boardContainer.addChild(tileSprite);
                 }
                 pos++;
@@ -199,9 +205,9 @@ function drawEntity(entity){
         sprite.y = entity.row * TILE_SIZE;
         boardContainer.addChild(sprite);
     } else {
-        console.log('creating new sprite for entity: ')
-        console.log(entity)
-        entityImage = new PIXI.Sprite(resolveEntityTexture(entity))
+        console.log('creating new sprite for entity: ');
+        console.log(entity);
+        entityImage = new PIXI.Sprite(resolveEntityTexture(entity));
         entityImage.x = entity.column * TILE_SIZE;
         entityImage.y = entity.row * TILE_SIZE;
         entityImage.height = TILE_SIZE;
@@ -266,21 +272,16 @@ function eventReaction(event) {
             });
             break;
         case "speech":
-            i=0; k=0;
+            k=0;
+            while(mess_list.length){textDemise();}  //clear message list to not interfere later
             userID=event.properties.user_id;
-            testMessage=event.properties.message;
-            for(i=0;i<=testMessage.length-1;i++) {
-                if(testMessage[i]==testMessage[0]){
-                    messageHandler(userID, 0, testMessage[i]);
-                }
-                else{messageHandler(0, 0, testMessage[i]);}
-                console.log("Passed " +testMessage[i]);
-            }
-            //var myVar = setInterval(myTimer ,10000);
-           testResponse=event.properties.responses;
-            for(k=0;k<=testResponse.length-1;k++) {
-                messageHandler(0, k+1, testResponse[k]);
-                console.log("Passed " + testResponse[k]);
+            messageHandler(userID, 0, event.properties.message);
+
+           responseList=event.properties.responses;
+            numOfResponses=responseList.length;
+            for(k=0;k<=responseList.length-1;k++) {
+                messageHandler(0, k+1, responseList[k]);
+                console.log("Passed " + responseList[k]);
             }
             break;
         case "command"://ignore
@@ -294,60 +295,58 @@ function messageHandler(user, option, text){
         options:String(option),
         texts: String(text)
     });//push inputs into text_list
-    // then will push each message made out of text into mess_list
+    // then will push each message made out of elements of text_list into mess_list
     i=text_list.length-1;       j=0;
     if(text_list[i].options=="0"){//message handling
-        if(text_list[i].speaker!="0"){
-            mess = new PIXI.Text(text_list[i].speaker + ": " + text_list[i].texts, style);
-            mess.position.set(TILE_SIZE + 6, bBY+(i*fSize));
-        }
-        else{
-            mess = new PIXI.Text( text_list[i].texts, style);
-            mess.position.set((TILE_SIZE*1.5), bBY+(i*fSize));
-        }
+        mess = new PIXI.Text(text_list[i].speaker + ": " + text_list[i].texts, style);
+        mess.position.set(TILE_SIZE + 6, bBY);
         mess_list.push(mess);
     }
     else{//response handling
-        mess=new PIXI.Text(text_list[i].options+") " +text_list[i].texts, style);
-        mess.position.set(TILE_SIZE + 6, bBY+(i*fSize));
-        mess_list.push(mess);
+        if(counter<=numOfResponses+1){
+            mess=new PIXI.Text(text_list[i].options+") " +text_list[i].texts, style);
+            mess.position.set(TILE_SIZE + 6, bBY+(counter* fSize));
+            mess_list.push(mess);
+        }
+        counter++;
     }
     if(mess_list.length>mess_listMax){ //containing the amount to 4 lines deleting bottom mess
-        text_list.shift();
-        mess_list.shift();
-        text_list.length=mess_listMax;
-        mess_list.length=mess_listMax;
+        textDemise();
+        i=mess_list.length-1;
+    }
+    if(i>=2){ //if there is more than 2 lines of text make box bigger and move text
+        if(bottomBar.y==0){//expand bar
+            bottomBar.y-=yShift;
+        }
+        if(mess_list[0].y==bBY){//shift all messages upwards
+            for (j = 0; j <= i; j++) {mess_list[j].y -= yShift;}
+        }
     }
     for(j=0;j<=mess_list.length-1;j++) {//add every message to speechBar container
         speechBar.addChild(mess_list[j]);
-    }
-    if(i>=3){ //if there is more than 3 lines of text make box bigger and move text
-        bottomBar.y-=yShift;
-        for (j=0;j<=i;j++) {
-            mess_list[j].y -=yShift;
-        }
+        i=text_list.length-1;
     }
 }//end of messageHandler
 function addingTimer(){
-    for(i=0;i<=(mess_listMax*0.5)-1;i++) {//set time for messages
-        setTimeout(textDemise, messTime+(i*timeInc));
+    for(i=0;i<1;i++) {//set time for messages
+        timeM=setTimeout(textDemise, messTime+(i*timeInc));
     }
-    for(i=(mess_listMax*0.5);i<mess_listMax;i++) {//set time for responses
-        setTimeout(textDemise, respTime+(i*timeInc));
+    for(i=2;i<mess_listMax;i++) {//set time for responses
+        timeR=setTimeout(textDemise, respTime+(i*timeInc));
     }
 }//end of addingTime
 function textDemise(){
-    i=mess_list.length-1;
-    for(j=0;j<=mess_list.length-1;j++) {//remove every message
-        speechBar.removeChild(mess_list[j]);
-    }
+    i=mess_list.length-1; p=0;
+   for(p=0;p<=i;p++) {//remove every message
+       speechBar.removeChild(mess_list[p]);
+   }
     mess_list.shift();
     text_list.shift();
-     for(j=0;j<=mess_list.length-1;j++) {//add every message
+    for(j=0;j<=mess_list.length-1;j++) {//see remaining messages
         speechBar.addChild(mess_list[j]);
     }
-    if(i==2){ //if there is 2 lines of text make box go back to og y
-        bottomBar.y+=yShift;
+    if(i<=3){ //if there is 3 lines of text make box "shrink"
+        if(bottomBar.y!=0){bottomBar.y+=(yShift*0.5);}//stops at original position
     }
     var d = new Date();
     console.log("text deleted at: "+d.toLocaleTimeString());
