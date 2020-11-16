@@ -111,34 +111,34 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
         case "a":
         case "A":
         case "ArrowLeft":
-            sendCommand("MOVE", "WEST");
+            sendCommand("MOVE", {'direction': "WEST"});
             currentKey = null;
             lastMovement="WEST";
             break;
         case "d":
         case "D":
         case "ArrowRight":
-            sendCommand("MOVE", "EAST");
+            sendCommand("MOVE", {'direction': "EAST"});
             currentKey = null;
             lastMovement="EAST";
             break;
         case "w":
         case "W":
         case "ArrowUp":
-            sendCommand("MOVE", "NORTH");
+            sendCommand("MOVE", {'direction': "NORTH"});
             currentKey = null;
             lastMovement="NORTH";
             break;
         case "s":
         case "S":
         case "ArrowDown":
-            sendCommand("MOVE", "SOUTH");
+            sendCommand("MOVE", {'direction': "SOUTH"});
             currentKey = null;
             lastMovement="SOUTH";
             break;
         case "e":
         case "E":
-            sendCommand("INTERACT", lastMovement.toString());
+            sendCommand("INTERACT", {'direction': lastMovement.toString()});
             currentKey=null;
             break;
         case "p": // TEST JSON for messages
@@ -242,13 +242,10 @@ function drawEntity(entity){
 }//end of drawEntity
 // ***** The following methods display 'debugging'    *****
 // ***** information that's retrieved from the server *****
-function sendCommand(command, parameter) {      //sends a command
-    stompClient.send("/index/gg/command", {}, JSON.stringify(
-        {
-            "command": command,
-            "parameter": parameter
-        }
-    ));
+function sendCommand(command, parameters) {      //sends a command
+    parameters['command'] = command;
+    parameters['username'] = username;
+    stompClient.send("/index/gg/command", {}, JSON.stringify(parameters));
 }//end sendCommand
 
 function eventReaction(event) {
@@ -361,7 +358,7 @@ function responseDemise(){
 }
 function choiceMade(choice){
     if (numOfResponses !=0 && choice<=numOfResponses-1){
-        sendCommand("speech", JSON.stringify('{"listener":"recipient", "message":'+responseList[choice]+'}'));
+        sendCommand("speech", {"listener":1, "message":responseList[choice]}); // TODO: remember who you're responding to (listener)
         console.log("Choice made: "+ responseList[choice]);
         for(j=0;j<=numOfResponses;j++){responseDemise();}
     }
