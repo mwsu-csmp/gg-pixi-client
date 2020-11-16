@@ -23,7 +23,7 @@ let currentBoardName,boardWidth, boardHeight;
 let boardMap;
 let boardInfoURL = '/board';
 let messTime=10000,respTime=15000,timeInc=1000;
-numOfResponses=0;
+let numOfResponses=0;
 
 let app = new PIXI.Application({
     width: APP_WIDTH, height: APP_HEIGHT, transparent: true
@@ -142,7 +142,7 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             currentKey=null;
             break;
         case "p": // TEST JSON for messages
-            testjson = '{"type":"speech", "properties":{"message":"yabbadabadoo", "user_id": '+myUserEnityId+', "responses":["Hello to you too!", "Get lost"]}   }';
+            testjson = '{"type":"speech", "properties":{"message":"yabbadabadoo", "speaker": '+myUserEnityId+', "responseChoices":["Hello to you too!", "Get lost"]}   }';
             console.log(testjson);
             counter=1;
             eventReaction(JSON.parse(testjson));
@@ -150,10 +150,12 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             if(timeR!==undefined){clearTimeout(timeR);  timeR=undefined;console.log("clear timeR");};
             addingTimer();
             break;
-        case "1":
-        //button case for response 1
-        case "2":
-        //button case for response 2
+        case "1": //button case for response 1
+            choiceMade(0);
+        case "2"://button case for response 2
+            choiceMade(1);
+        case 3: //button case for response 3
+            choiceMade(2);
     }
 } // end updateKeys
 function loadBoard(boardName){
@@ -196,8 +198,6 @@ function loadBoard(boardName){
         );
     });
 }//end of loadBoard
-
-
 function drawEntity(entity){
     if(entitySprites[entity.id]) { // entity has a sprite
         sprite = entitySprites[entity.id];
@@ -274,12 +274,12 @@ function eventReaction(event) {
         case "speech":
             k=0;
             while(mess_list.length){textDemise();}  //clear message list to not interfere later
-            userID=event.properties.user_id;
+            userID=event.properties.speaker;
             messageHandler(userID, 0, event.properties.message);
-
-           responseList=event.properties.responses;
+            //put all of responses into an array to be used for responses and shown
+           responseList=event.properties.responseChoices;
             numOfResponses=responseList.length;
-            for(k=0;k<=responseList.length-1;k++) {
+            for(k=0;k<=numOfResponses-1;k++) {
                 messageHandler(0, k+1, responseList[k]);
                 console.log("Passed " + responseList[k]);
             }
@@ -334,6 +334,11 @@ function addingTimer(){
     for(i=2;i<mess_listMax;i++) {//set time for responses
         timeR=setTimeout(textDemise, respTime+(i*timeInc));
     }
+    if(responseList.length!=0){
+        for(j=0; j<=numOfResponses-1;j++){
+            setTimeout(responseDemise, respTime+(j*timeInc));
+        }
+    }
 }//end of addingTime
 function textDemise(){
     i=mess_list.length-1; p=0;
@@ -351,4 +356,15 @@ function textDemise(){
     var d = new Date();
     console.log("text deleted at: "+d.toLocaleTimeString());
 }//end of textTimer
+function responseDemise(){
+    responseList.shift();
+}
+function choiceMade(choice){
+    if (numOfResponses !=0 && choice<=numOfResponses-1){
+        sendCommand("speech", JSON.stringify('{"listener":"recipient", "message":'+responseList[choice]+'}'));
+        console.log("Choice made: "+ responseList[choice]);
+        for(j=0;j<=numOfResponses;j++){responseDemise();}
+    }
+    for(t=0;t<=mess_list.length-1;t++){textDemise();}
+}
 document.onkeydown = updateKeys;
