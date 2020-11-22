@@ -4,6 +4,7 @@ let entitySprites = [];  // sprites for each currently loaded entity indexed by 
 let text_list=[];
 let mess_list=[];
 let userID, responseList=[];
+let numOfResponses=0;
 
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
@@ -23,17 +24,15 @@ let currentBoardName,boardWidth, boardHeight;
 let boardMap;
 let boardInfoURL = '/board';
 let messTime=10000,respTime=15000,timeInc=1000;
-let numOfResponses=0;
+let fSize=22;
+//end of establishing constants
 
 let app = new PIXI.Application({
     width: APP_WIDTH, height: APP_HEIGHT, transparent: true
 });
-
 let speechBar = new PIXI.Container();
-let fSize=22;
 let style= new PIXI.TextStyle({fill: "white", fontFamily: "Times New Roman", fontSize: fSize});
 document.body.appendChild(app.view);
-
 let boardContainer=new PIXI.Container;
 app.stage.addChild(boardContainer);
 //make the bar to hold speech in
@@ -48,10 +47,8 @@ speechBar.addChildAt(bottomBar);
 let username = $($.find('h1')[0]).html();
 
 // TODO: load sprite sheet metadata, load sheets indicated in metadata
-
 PIXI.loader.add("/game/game.json")
     .load(connectToStompGameServer());
-
 
 function connectToStompGameServer() {
     var socket = new SockJS('/WebSocketConfig');//connection link
@@ -65,7 +62,6 @@ function connectToStompGameServer() {
         $.getJSON("/player-avatar/" + username, function (entity) {
             myUserEnityId = entity.id;
             currentBoardName = entity.board;
-
             launchPixiClient()
         });
     });
@@ -73,14 +69,13 @@ function connectToStompGameServer() {
 
 function launchPixiClient() {
     spritesheet = PIXI.loader.resources["/game/game.json"].spritesheet;
-    loadBoard(currentBoardName)
+    loadBoard(currentBoardName);
 }
 
 /* locate the best possible texture for the specified tile */
 function resolveTileTexture(boardName, row, col, tileTypes, tileChar) {
     // TODO: look up tile detail (possibly in background)
     // TODO: use a tile object instead of the four params above?
-
     // check to see if a default texture for the tile type exists
     if(tileTypes[tileChar]) {
         filename = 'tile-' + tileTypes[tileChar] + '.png';
@@ -95,7 +90,6 @@ function resolveTileTexture(boardName, row, col, tileTypes, tileChar) {
 /* locate the best possible texture for the specified entity */
 function resolveEntityTexture(entity) {
     // TODO: check for presence of attributes that signify a more specific entity texture
-
     // check to see if a default texture for the tile type exists
     filename = 'entity-' + entity.type + '.png';
     if(spritesheet.textures[filename])
@@ -104,7 +98,6 @@ function resolveEntityTexture(entity) {
     // no more unique texture found, use generic entity texture
     return spritesheet.textures['entity.png'];
 }
-
 function updateKeys(e){ // updates currentKey with the latest key pressed.
     let currentKey = e.key;
     switch (currentKey){
@@ -141,20 +134,11 @@ function updateKeys(e){ // updates currentKey with the latest key pressed.
             sendCommand("INTERACT", {'direction': lastMovement.toString()});
             currentKey=null;
             break;
-        case "p": // TEST JSON for messages
-            testjson = '{"type":"speech", "properties":{"message":"yabbadabadoo", "speaker": '+myUserEnityId+', "responseChoices":["Hello to you too!", "Get lost"]}   }';
-            console.log(testjson);
-            counter=1;
-            eventReaction(JSON.parse(testjson));
-            if(timeM!==undefined){clearTimeout(timeM); timeM=undefined; console.log("clear timeM");};
-            if(timeR!==undefined){clearTimeout(timeR);  timeR=undefined;console.log("clear timeR");};
-            addingTimer();
-            break;
         case "1": //button case for response 1
             choiceMade(0);
         case "2"://button case for response 2
             choiceMade(1);
-        case 3: //button case for response 3
+        case "3": //button case for response 3
             choiceMade(2);
     }
 } // end updateKeys
@@ -215,10 +199,7 @@ function drawEntity(entity){
         boardContainer.addChild(entityImage);
         entitySprites[entity.id] = entityImage;
     }
-
     if(entity.id == myUserEnityId) { // user avatar moved, update game window
-        // TODO: update to use constants / parameters instead of hardcoded values
-
         //keep boardContainer centered on the players position without going off screen
         playerX = entitySprites[myUserEnityId].position.x;
         playerY = entitySprites[myUserEnityId].position.y;
@@ -247,7 +228,6 @@ function sendCommand(command, parameters) {      //sends a command
     parameters['username'] = username;
     stompClient.send("/index/gg/command", {}, JSON.stringify(parameters));
 }//end sendCommand
-
 function eventReaction(event) {
     switch (event.type) {
         case "entity-created":
@@ -269,17 +249,23 @@ function eventReaction(event) {
             });
             break;
         case "speech":
-            k=0;
+            k=0;    counter=1;
             while(mess_list.length){textDemise();}  //clear message list to not interfere later
-            userID=event.properties.speaker;
+            userID=event.properties.id;
             messageHandler(userID, 0, event.properties.message);
             //put all of responses into an array to be used for responses and shown
-           responseList=event.properties.responseChoices;
-            numOfResponses=responseList.length;
-            for(k=0;k<=numOfResponses-1;k++) {
-                messageHandler(0, k+1, responseList[k]);
-                console.log("Passed " + responseList[k]);
+            if(event.properties.responseChoices){ //if response options are present
+                responseList=event.properties.responseChoices;
+                numOfResponses=responseList.length;
+                for(k=0;k<=numOfResponses-1;k++) {
+                    messageHandler(0, k+1, responseList[k]);
+                    console.log("Passed " + responseList[k]);
+                }
             }
+            //clear timers and sets timers for messages and responses
+            if(timeM!==undefined){clearTimeout(timeM); timeM=undefined; console.log("clear timeM");};
+            if(timeR!==undefined){clearTimeout(timeR);  timeR=undefined;console.log("clear timeR");};
+            addingTimer();
             break;
         case "command"://ignore
             break;
@@ -302,24 +288,23 @@ function messageHandler(user, option, text){
     else{//response handling
         if(counter<=numOfResponses+1){
             mess=new PIXI.Text(text_list[i].options+") " +text_list[i].texts, style);
-            mess.position.set(TILE_SIZE + 6, bBY+(counter* fSize));
+            mess.position.set(TILE_SIZE + 6, bBY+(counter*fSize));
             mess_list.push(mess);
         }
-        counter++;
+        counter++;//response option counter
     }
-    if(mess_list.length>mess_listMax){ //containing the amount to 4 lines deleting bottom mess
+    if(mess_list.length>mess_listMax+1){ //containing the amount to 4 lines deleting first mess
         textDemise();
         i=mess_list.length-1;
     }
     if(i>=2){ //if there is more than 2 lines of text make box bigger and move text
-        if(bottomBar.y==0){//expand bar
+        if(bottomBar.y==0){//expand bar if not already moved
             bottomBar.y-=yShift;
-        }
-        if(mess_list[0].y==bBY){//shift all messages upwards
-            for (j = 0; j <= i; j++) {mess_list[j].y -= yShift;}
-        }
+        }//shift all messages upwards if not already shifted
+        if(i==2){for (j = 0; j <= i; j++) {mess_list[j].y -= yShift;}}
+        if(i==3){mess_list[3].y-=yShift;}
     }
-    for(j=0;j<=mess_list.length-1;j++) {//add every message to speechBar container
+    for(j=0;j<=i;j++) {//add every message to speechBar container to display
         speechBar.addChild(mess_list[j]);
         i=text_list.length-1;
     }
@@ -328,11 +313,11 @@ function addingTimer(){
     for(i=0;i<1;i++) {//set time for messages
         timeM=setTimeout(textDemise, messTime+(i*timeInc));
     }
-    for(i=2;i<mess_listMax;i++) {//set time for responses
+    for(i=1;i<mess_listMax;i++) {//set time for responses to be shown
         timeR=setTimeout(textDemise, respTime+(i*timeInc));
     }
-    if(responseList.length!=0){
-        for(j=0; j<=numOfResponses-1;j++){
+    if(responseList.length!=0){//set time for response choices to be viable
+        for(j=0; j<=numOfResponses;j++){
             setTimeout(responseDemise, respTime+(j*timeInc));
         }
     }
@@ -342,8 +327,8 @@ function textDemise(){
    for(p=0;p<=i;p++) {//remove every message
        speechBar.removeChild(mess_list[p]);
    }
-    mess_list.shift();
-    text_list.shift();
+    mess_list.shift();//delete fist object in mess_list
+    text_list.shift();//delete fist object in text_list
     for(j=0;j<=mess_list.length-1;j++) {//see remaining messages
         speechBar.addChild(mess_list[j]);
     }
@@ -354,14 +339,16 @@ function textDemise(){
     console.log("text deleted at: "+d.toLocaleTimeString());
 }//end of textTimer
 function responseDemise(){
-    responseList.shift();
-}
+    responseList.shift();//removing the first response choice in the responseList
+}//end of responseDemise
 function choiceMade(choice){
-    if (numOfResponses !=0 && choice<=numOfResponses-1){
-        sendCommand("speech", {"listener":1, "message":responseList[choice]}); // TODO: remember who you're responding to (listener)
+    if (numOfResponses !=0 && choice<=numOfResponses){
+        //send response choice as well as who is receiving the response to server
+        sendCommand("speech", {"listener":userID, "message":responseList[choice]});
         console.log("Choice made: "+ responseList[choice]);
-        for(j=0;j<=numOfResponses;j++){responseDemise();}
+        for(j=0;j<=numOfResponses;j++){responseDemise();}//responses delete themselves from the list storing all options
+        for(t=0;t<=counter;t++){textDemise();}//remove all mess_list associated to the response choice
+        numOfResponses=0;//reset to zero so response buttons don't trigger unless new response choices
     }
-    for(t=0;t<=mess_list.length-1;t++){textDemise();}
-}
+}//end of choiceMade
 document.onkeydown = updateKeys;
