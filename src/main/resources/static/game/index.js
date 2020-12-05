@@ -5,6 +5,7 @@ let text_list=[];
 let mess_list=[];
 let userID, responseList=[];
 let numOfResponses=0;
+let speakerName;
 
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
@@ -28,7 +29,7 @@ let fSize=22;
 //end of establishing constants
 
 let app = new PIXI.Application({
-    width: APP_WIDTH, height: APP_HEIGHT, transparent: true
+    width: APP_WIDTH, height: APP_HEIGHT, backgroundColor:0xFFFFFF
 });
 let speechBar = new PIXI.Container();
 let style= new PIXI.TextStyle({fill: "white", fontFamily: "Times New Roman", fontSize: fSize});
@@ -82,7 +83,6 @@ function resolveTileTexture(boardName, row, col, tileTypes, tileChar) {
         if(spritesheet.textures[filename])
             return spritesheet.textures[filename];
     }
-
     // no more unique texture found, use generic tile texture
     return spritesheet.textures['tile.png'];
 }
@@ -199,6 +199,7 @@ function drawEntity(entity){
         boardContainer.addChild(entityImage);
         entitySprites[entity.id] = entityImage;
     }
+    if(entity.type=="npc"){speakerName= String(entity.properties.sprites);}
     if(entity.id == myUserEnityId) { // user avatar moved, update game window
         //keep boardContainer centered on the players position without going off screen
         playerX = entitySprites[myUserEnityId].position.x;
@@ -251,14 +252,13 @@ function eventReaction(event) {
         case "speech":
             k=0;    counter=1;
             while(mess_list.length){textDemise();}  //clear message list to not interfere later
-            userID=event.properties.id;
-            messageHandler(userID, 0, event.properties.message);
+            messageHandler(speakerName, 0, event.properties.message);
             //put all of responses into an array to be used for responses and shown
             if(event.properties.responseChoices){ //if response options are present
                 responseList=event.properties.responseChoices;
                 numOfResponses=responseList.length;
                 for(k=0;k<=numOfResponses-1;k++) {
-                    messageHandler(0, k+1, responseList[k]);
+                    messageHandler("null", k+1, responseList[k]);
                     console.log("Passed " + responseList[k]);
                 }
             }
@@ -274,7 +274,7 @@ function eventReaction(event) {
 }//end of eventReaction
 function messageHandler(user, option, text){
     text_list.push({
-        speaker:String(user),
+        speaker:user,
         options:String(option),
         texts: String(text)
     });//push inputs into text_list
@@ -344,7 +344,7 @@ function responseDemise(){
 function choiceMade(choice){
     if (numOfResponses !=0 && choice<=numOfResponses){
         //send response choice as well as who is receiving the response to server
-        sendCommand("speech", {"listener":userID, "message":responseList[choice]});
+        sendCommand("speech", {"listener":speakerName, "message":responseList[choice]});
         console.log("Choice made: "+ responseList[choice]);
         for(j=0;j<=numOfResponses;j++){responseDemise();}//responses delete themselves from the list storing all options
         for(t=0;t<=counter;t++){textDemise();}//remove all mess_list associated to the response choice
