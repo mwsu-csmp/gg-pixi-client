@@ -1,0 +1,27 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  maven-package:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+      
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: maven-package
+    steps:
+      - uses: actions/checkout@v2
+      - name: Publish package
+        run: mvn deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
