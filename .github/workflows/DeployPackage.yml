@@ -1,10 +1,13 @@
-name: Java CI with Maven
+name: Create gg-pixi-client package
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    branches: [ main ]
+  
 
 jobs:
   maven-package:
