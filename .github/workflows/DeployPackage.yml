@@ -1,4 +1,4 @@
-name: Maven_Install_Package_Deploy
+name: Maven deploy package on release
 
 on:
   release:
