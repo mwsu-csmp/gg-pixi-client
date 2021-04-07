@@ -6,6 +6,11 @@ let mess_list=[];
 let userID, responseList=[];
 let numOfResponses=0;
 let speakerName;
+let game_channel = 'mwsu' // TODO: make this configurable and have server send options
+
+let mqtt_host = location.hostname
+let mqtt_port = 9001
+let mqtt_client = new Paho.Client(mqtt_host, mqtt_port, "clientId");
 
 TILE_SIZE = 60;
 WINDOW_SIZE = 20 * TILE_SIZE;
@@ -47,9 +52,41 @@ speechBar.addChildAt(bottomBar);
 
 let username = $($.find('h1')[0]).html();
 
+
+function onMqttConnectionLost(response) {
+    alert("mqtt connection lost");
+}
+function onMqttMessageArrived(message) {
+    eventReaction(JSON.parse(message.payloadString));
+}
+
+function connectedToMqttServer() {
+    console.log('connected to mqtt server');
+    mqtt_client.subscribe(game_channel);
+
+    // determine player avatar and begin game loop
+    $.getJSON("/player-avatar/" + username, function (entity) {
+        myUserEnityId = entity.id;
+        currentBoardName = entity.board;
+        launchPixiClient();
+    });
+}
+
+function connectToMqttGameServer() {
+    mqtt_client.connect({onSuccess:connectedToMqttServer});
+}
+
+
+mqtt_client.onConnectionLost = onMqttConnectionLost;
+mqtt_client.onMessageArrived = onMqttMessageArrived;
+
+
 // TODO: load sprite sheet metadata, load sheets indicated in metadata
 PIXI.loader.add("/game/game.json")
-    .load(connectToStompGameServer());
+    .load(connectToMqttGameServer());
+
+
+
 
 function connectToStompGameServer() {
     var socket = new SockJS('/WebSocketConfig');//connection link
@@ -227,8 +264,17 @@ function drawEntity(entity){
 function sendCommand(command, parameters) {      //sends a command
     parameters['command'] = command;
     parameters['username'] = username;
-    stompClient.send("/index/gg/command", {}, JSON.stringify(parameters));
+
+    //stompClient.send("/index/gg/command", {}, JSON.stringify(parameters));  // old STOMP code (TODO: remove)
+
+    // create command and issue via MQTT agent channel
+    cmd = new Paho.Message(JSON.stringify(parameters));
+    cmd.destinationName = game_channel+'/agent/'+username;
+    mqtt_client.send(cmd);
 }//end sendCommand
+
+
+
 function eventReaction(event) {
     switch (event.type) {
         case "entity-created":
