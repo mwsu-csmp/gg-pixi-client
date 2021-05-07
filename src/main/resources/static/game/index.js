@@ -388,6 +388,9 @@ function eventReaction(event) {
                 }
                 if(entity.board == currentBoardName) { // draw the entity if it's on our board
                     drawEntity(entity);
+                } else if (entitySprites[entity.id]) { // entity's sprite should be removed
+                        let sprite = entitySprites[entity.id];
+                        boardContainer.removeChild(sprite);
                 }
             });
             break;
