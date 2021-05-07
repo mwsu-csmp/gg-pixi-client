@@ -1,6 +1,7 @@
 let entity_sprites, tile_sprites;
 let tileSprites = [];    // sprites for each tile on the current board indexed by "<column>-<row>"
 let entitySprites = [];  // sprites for each currently loaded entity indexed by entity ID
+let nonAnimatedSprites = []; // entity spriites that don't animate
 let text_list=[];
 let mess_list=[];
 let userID, responseList=[];
@@ -109,13 +110,15 @@ function launchPixiClient() {
 
     tile_sprites = tiles_spritesheet.textures;
     entity_sprites ={ ...player_spritesheet.textures, ...misc_entities_spritesheet.textures, ...entity_guardian_spritesheet.textures};
-    createPlayerSheet();
+    console.log(misc_entities_spritesheet);
+    createSpritesheets();
     loadBoard(currentBoardName);
     //createPlayer();
 }
 
-function createPlayerSheet() {
+function createSpritesheets() {
 
+    // Player
     app.loader.add('player-spritesheet', '/game/entities/entity-player-spritesheet.png');
 
     let playerSpritesheet = new PIXI.BaseTexture.from(
@@ -151,15 +154,17 @@ function createPlayerSheet() {
         new PIXI.Texture(playerSpritesheet, new PIXI.Rectangle(11*SPRITE_SIZE, 0, SPRITE_SIZE, SPRITE_SIZE))
     ];
 
+    // Guide / NPC / Guardian
     app.loader.add('npc-spritesheet', '/game/entities/entity-guardian-spritesheet.png');
 
-    let testnpc = new PIXI.BaseTexture.from(
+    let npcSpritesheet = new PIXI.BaseTexture.from(
         app.loader.resources["npc-spritesheet"].url
     );
 
     npcSheet["idleWest"] = [
-        new PIXI.Texture(testnpc, new PIXI.Rectangle(0, 0, 110, 110))
+        new PIXI.Texture(npcSpritesheet, new PIXI.Rectangle(0, 0, SPRITE_SIZE, SPRITE_SIZE))
     ]
+
 }
 
 function createPlayer(){
@@ -310,15 +315,30 @@ function loadBoard(boardName){
 }//end of loadBoard
 
 function drawEntity(entity){
-        if (entitySprites[entity.id]) { // entity has a sprite
-            let sprite = entitySprites[entity.id];
-            sprite.x = entity.column * TILE_SIZE;
-            sprite.y = entity.row * TILE_SIZE;
-            boardContainer.addChild(sprite);
 
+
+        if(entity.type.valueOf() !== "player" ){
+            if(entity.type.valueOf() !== "guardian"){
+                let entityImage = new PIXI.Sprite(resolveEntityTexture(entity));
+                entityImage.x = entity.column * TILE_SIZE;
+                entityImage.y = entity.row * TILE_SIZE;
+                entityImage.height = TILE_SIZE;
+                entityImage.width = TILE_SIZE;
+                boardContainer.addChild(entityImage);
+                nonAnimatedSprites[entity.id] = entityImage;
+            }
+
+
+        }if (entitySprites[entity.id] ){
+            if(!nonAnimatedSprites[entity.id]) { // entity has a sprite
+                let sprite = entitySprites[entity.id];
+                sprite.x = entity.column * TILE_SIZE;
+                sprite.y = entity.row * TILE_SIZE;
+                boardContainer.addChild(sprite);
+            }
         } else {
-
-            entityImage= new PIXI.AnimatedSprite(npcSheet.idleWest);
+        if(nonAnimatedSprites[entity.id])return;
+            let entityImage= new PIXI.AnimatedSprite(npcSheet.idleWest);
             if (entity.type == "player")
             entityImage = new PIXI.AnimatedSprite(playerSheet.idleWest);//resolveEntityTexture(entity));
 
