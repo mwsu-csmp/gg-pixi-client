@@ -394,20 +394,22 @@ function eventReaction(event) {
         case "speech":
             k=0;    counter=1;
             while(mess_list.length){textDemise();}  //clear message list to not interfere later
-            messageHandler(speakerName, 0, event.properties.message);
-            //put all of responses into an array to be used for responses and shown
-            if(event.properties.responseChoices){ //if response options are present
-                responseList=event.properties.responseChoices;
-                numOfResponses=responseList.length;
-                for(k=0;k<=numOfResponses-1;k++) {
-                    messageHandler("null", k+1, responseList[k]);
-                    console.log("Passed " + responseList[k]);
+            $.getJSON("/entity/"+event.properties.entity,function (entity) {
+                messageHandler(entity.type, 0, event.properties.message);
+                //put all of responses into an array to be used for responses and shown
+                if(event.properties.responseChoices){ //if response options are present
+                    responseList=event.properties.responseChoices;
+                    numOfResponses=responseList.length;
+                    for(k=0;k<=numOfResponses-1;k++) {
+                        messageHandler("null", k+1, responseList[k]);
+                        console.log("Passed " + responseList[k]);
+                    }
                 }
-            }
-            //clear timers and sets timers for messages and responses
-            if(timeM!==undefined){clearTimeout(timeM); timeM=undefined; console.log("clear timeM");};
-            if(timeR!==undefined){clearTimeout(timeR);  timeR=undefined;console.log("clear timeR");};
-            addingTimer();
+                //clear timers and sets timers for messages and responses
+                if(timeM!==undefined){clearTimeout(timeM); timeM=undefined; console.log("clear timeM");};
+                if(timeR!==undefined){clearTimeout(timeR);  timeR=undefined;console.log("clear timeR");};
+                addingTimer();
+            });
             break;
         case "command"://ignore
             break;
